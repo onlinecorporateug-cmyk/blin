@@ -1,0 +1,7 @@
+{
+  "name": "BLiN - Create Your Vibe",
+  "description": "Short-form video, stories, creative studio, and social messaging app. Create your vibe. Find your people.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
+

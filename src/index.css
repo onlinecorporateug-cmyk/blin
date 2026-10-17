@@ -1,0 +1,127 @@
+@import "tailwindcss";
+
+:root {
+  --bg: #0a0f0c;
+  --fg: #f3f4f6;
+  --mut: #9ca3af;
+  --ac: #22c55e;
+  --ac2: #a3e635;
+  --card: #151c17;
+  --card-hover: #1b241e;
+  --border: #232d26;
+  --zm: 1;
+}
+
+html, body {
+  height: 100%;
+  margin: 0;
+  background-color: #050608;
+  color: var(--fg);
+  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Light Theme */
+.tl {
+  --bg: #f6faf7;
+  --fg: #0f1a13;
+  --mut: #5b6b60;
+  --card: #e4ede6;
+  --card-hover: #d7e4da;
+  --border: #cfdad2;
+}
+
+.tl .text-mut {
+  color: var(--mut);
+}
+
+/* High Contrast */
+.hc {
+  --mut: #e5e7eb;
+}
+.tl.hc {
+  --mut: #27322b;
+}
+
+/* Reduced Motion */
+.rm *, .rm *::before, .rm *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+}
+
+/* Hide scrollbars */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* App container */
+.app-container {
+  max-width: 440px;
+  height: 100%;
+  margin: 0 auto;
+  background-color: var(--bg);
+  color: var(--fg);
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+}
+
+@media (max-width: 640px) {
+  .app-container {
+    max-width: 100%;
+    box-shadow: none;
+  }
+}
+
+/* Video snap feed */
+.clip-feed {
+  scroll-snap-type: y mandatory;
+  overflow-y: auto;
+}
+.clip-item {
+  scroll-snap-align: start;
+  height: 100%;
+  position: relative;
+}
+
+/* Gradients */
+.gradient-text {
+  background: linear-gradient(90deg, #4ade80, #a3e635);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.gradient-btn {
+  background: linear-gradient(90deg, #22c55e, #a3e635);
+  color: #04210f;
+  font-weight: 800;
+}
+
+/* Story progress animation */
+@keyframes storyProgress {
+  from { width: 0%; }
+  to { width: 100%; }
+}
+.animate-story-progress {
+  animation: storyProgress 4s linear forwards;
+}
+
+/* Logo font styling */
+.logo-script {
+  font-family: "Billabong", "Snell Roundhand", "Segoe Script", "Brush Script MT", cursive;
+  line-height: 1.1;
+}
+
+/* Zoom support */
+.zoom-content {
+  zoom: var(--zm);
+}
