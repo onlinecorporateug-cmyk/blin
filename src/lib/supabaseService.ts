@@ -6,7 +6,7 @@ import { Account, ChatMessage } from '../types';
  */
 
 // ==============================================================================
-// 1. PROFILES
+// 1. PROFILES & USERS
 // ==============================================================================
 
 export async function syncUserProfileToSupabase(account: Account): Promise<{ success: boolean; error?: string }> {
@@ -17,29 +17,10 @@ export async function syncUserProfileToSupabase(account: Account): Promise<{ suc
       return { success: false, error: 'No active Supabase auth session' };
     }
 
-    // 1. Sync to public.profiles
-    const { error: profileError } = await supabase.from('profiles').upsert({
+    // 1. Primary canonical sync to public.users (Vercel user account record)
+    const { error: userError } = await supabase.from('users').upsert({
       id: userId,
-      username: account.u,
-      full_name: account.name,
-      avatar_url: account.avatar || null,
-      bio: account.bio || '',
-      role: account.role || 'user',
-      kind: account.kind || 'creator',
-      vibes: account.vibes || [],
-      is_teen: Boolean(account.teen),
-      followers_count: account.fol || 0,
-      updated_at: new Date().toISOString()
-    });
-
-    if (profileError) {
-      console.warn('Supabase profile sync notice:', profileError.message);
-    }
-
-    // 2. Sync to public.users (Vercel user account record)
-    await supabase.from('users').upsert({
-      id: userId,
-      email: account.em || '',
+      email: account.em || sessionData?.session?.user?.email || '',
       username: account.u,
       full_name: account.name,
       avatar_url: account.avatar || '',
@@ -47,11 +28,36 @@ export async function syncUserProfileToSupabase(account: Account): Promise<{ suc
       role: account.role || 'user',
       kind: account.kind || 'creator',
       vibes: account.vibes || [],
+      is_teen: Boolean(account.teen),
+      followers_count: account.fol || 0,
       signup_source: 'vercel',
       created_from_domain: typeof window !== 'undefined' ? window.location.hostname : 'vercel.app',
       last_sign_in_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     });
+
+    if (userError) {
+      console.warn('Supabase users sync notice:', userError.message);
+    }
+
+    // 2. Secondary sync to public.profiles if table or view exists
+    try {
+      await supabase.from('profiles').upsert({
+        id: userId,
+        username: account.u,
+        full_name: account.name,
+        avatar_url: account.avatar || null,
+        bio: account.bio || '',
+        role: account.role || 'user',
+        kind: account.kind || 'creator',
+        vibes: account.vibes || [],
+        is_teen: Boolean(account.teen),
+        followers_count: account.fol || 0,
+        updated_at: new Date().toISOString()
+      });
+    } catch {
+      // profiles view will reflect public.users automatically
+    }
 
     return { success: true };
   } catch (err: any) {
@@ -61,6 +67,29 @@ export async function syncUserProfileToSupabase(account: Account): Promise<{ suc
 
 export async function fetchRemoteProfiles(): Promise<Account[]> {
   try {
+    // 1. Query canonical public.users table
+    const { data: usersData, error: usersErr } = await supabase
+      .from('users')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (!usersErr && usersData && usersData.length > 0) {
+      return usersData.map((p: any) => ({
+        u: p.username,
+        name: p.full_name,
+        em: p.email || '',
+        pw: '',
+        role: p.role || 'user',
+        kind: p.kind || 'creator',
+        vibes: p.vibes || [],
+        teen: Boolean(p.is_teen),
+        fol: p.followers_count || 0,
+        bio: p.bio || '',
+        avatar: p.avatar_url || undefined
+      }));
+    }
+
+    // 2. Fallback to public.profiles if users is empty
     const { data, error } = await supabase
       .from('profiles')
       .select('*')
@@ -83,6 +112,24 @@ export async function fetchRemoteProfiles(): Promise<Account[]> {
     }));
   } catch {
     return [];
+  }
+}
+
+export async function resolveEmailFromHandle(handle: string): Promise<string | null> {
+  try {
+    const clean = handle.trim().toLowerCase().replace(/^@/, '');
+    const { data, error } = await supabase
+      .from('users')
+      .select('email')
+      .eq('username', clean)
+      .maybeSingle();
+
+    if (!error && data?.email) {
+      return data.email;
+    }
+    return null;
+  } catch {
+    return null;
   }
 }
 
