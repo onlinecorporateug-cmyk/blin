@@ -1,8 +1,14 @@
 import React, { useState } from 'react';
-import { ArrowLeft, Check, Shield, User, Lock, Eye, Bell, Film, Sparkles, MessageSquare, Users, Bot, Palette, Database, Moon, HelpCircle, AlertCircle, Trash2, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, Check, Shield, User, Lock, Eye, Bell, Film, Sparkles, MessageSquare, Users, Bot, Palette, Database, Moon, HelpCircle, AlertCircle, Trash2, CheckCircle2, Copy, RefreshCw, CheckCheck, Globe, ExternalLink } from 'lucide-react';
 import { Account, SettingsState, DraftItem, Clip } from '../types';
 import { TOPICS } from '../data/mockData';
 import { playTapSound } from '../utils/audio';
+import {
+  SUPABASE_URL,
+  SUPABASE_ANON_KEY,
+  DEFAULT_POSTGRES_CONNECTION_STRING,
+  testSupabaseConnection
+} from '../lib/supabase';
 
 interface SettingsViewProps {
   currentUser: Account;
@@ -64,6 +70,39 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   const [supportType, setSupportType] = useState('Question');
   const [supportMessage, setSupportMessage] = useState('');
 
+  // Supabase management state
+  const [isTestingSupabase, setIsTestingSupabase] = useState(false);
+  const [supabaseTestResult, setSupabaseTestResult] = useState<{
+    connected?: boolean;
+    message?: string;
+    latencyMs?: number;
+  } | null>(null);
+  const [copiedKey, setCopiedKey] = useState<string | null>(null);
+
+  const copyToClipboard = (text: string, keyName: string) => {
+    navigator.clipboard?.writeText(text);
+    setCopiedKey(keyName);
+    showToast(`Copied ${keyName} to clipboard ✨`);
+    setTimeout(() => setCopiedKey(null), 2500);
+  };
+
+  const handleTestSupabase = async () => {
+    setIsTestingSupabase(true);
+    setSupabaseTestResult(null);
+    try {
+      const res = await testSupabaseConnection();
+      setSupabaseTestResult(res);
+      showToast(res.connected ? 'Supabase connection verified! 🟢' : 'Connection check failed 🔴');
+    } catch (err: any) {
+      setSupabaseTestResult({
+        connected: false,
+        message: err?.message || 'Connection test failed'
+      });
+    } finally {
+      setIsTestingSupabase(false);
+    }
+  };
+
   const sections = [
     { id: 'acct', icon: User, title: 'Your account', desc: 'Profile info, account type, display settings' },
     { id: 'sec', icon: Lock, title: 'Account & Security', desc: 'Password, login activity, 2FA, data export, deletion' },
@@ -75,7 +114,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
     { id: 'comm', icon: Users, title: 'Communities', desc: 'Profile visibility, notifications, invites' },
     { id: 'ai', icon: Bot, title: 'BLiN AI', desc: 'Response style, caption tools, synthetic media labeling' },
     { id: 'look', icon: Palette, title: 'Appearance & Accessibility', desc: 'Theme, text size, language, reduced motion, contrast' },
-    { id: 'data', icon: Database, title: 'Storage & Data', desc: 'Data saver, downloads, cache management' },
+    { id: 'data', icon: Database, title: 'Supabase & Storage', desc: 'Supabase Auth, PostgreSQL connection, storage and cache' },
     { id: 'well', icon: Moon, title: 'Digital Wellbeing', desc: 'Screen-time break reminders, quiet hours' },
     { id: 'help', icon: HelpCircle, title: 'Help & Legal', desc: 'Community guidelines, privacy, terms, contact support' }
   ];
@@ -811,17 +850,197 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               </div>
             )}
 
-            {/* Section 11: Storage & Data */}
+            {/* Section 11: Supabase & Storage */}
             {activeSectionId === 'data' && (
-              <div className="p-3.5 rounded-xl bg-[var(--card)] border border-[var(--border)] space-y-3">
-                <div className="flex items-center justify-between">
+              <div className="space-y-3.5">
+                {/* Supabase Connection Overview Card */}
+                <div className="p-4 rounded-xl bg-gradient-to-br from-[#121c15] to-[#0d1610] border border-[#22c55e]/30 space-y-3 shadow-lg">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-lg bg-[#22c55e]/20 flex items-center justify-center text-[#22c55e]">
+                        <Database className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <h4 className="font-extrabold text-sm text-white flex items-center gap-1.5">
+                          <span>Supabase Cloud Database</span>
+                          <span className="w-2 h-2 rounded-full bg-[#22c55e] animate-pulse" />
+                        </h4>
+                        <p className="text-[11px] text-gray-400">Authenticated project configuration</p>
+                      </div>
+                    </div>
+
+                    <button
+                      onClick={handleTestSupabase}
+                      disabled={isTestingSupabase}
+                      className="px-3 py-1.5 rounded-lg bg-[#22c55e] hover:bg-[#a3e635] text-[#04210f] font-extrabold text-xs transition-colors flex items-center gap-1.5 disabled:opacity-50"
+                    >
+                      <RefreshCw className={`w-3.5 h-3.5 ${isTestingSupabase ? 'animate-spin' : ''}`} />
+                      <span>{isTestingSupabase ? 'Testing…' : 'Test Ping'}</span>
+                    </button>
+                  </div>
+
+                  {/* Test Result Banner */}
+                  {supabaseTestResult && (
+                    <div
+                      className={`p-3 rounded-lg border text-xs flex items-center gap-2 ${
+                        supabaseTestResult.connected
+                          ? 'bg-emerald-950/60 border-emerald-500/40 text-emerald-300'
+                          : 'bg-red-950/60 border-red-500/40 text-red-300'
+                      }`}
+                    >
+                      {supabaseTestResult.connected ? (
+                        <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-none" />
+                      ) : (
+                        <AlertCircle className="w-4 h-4 text-red-400 flex-none" />
+                      )}
+                      <div className="flex-1 font-mono text-[11px]">
+                        {supabaseTestResult.message}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Credentials Table */}
+                  <div className="space-y-2 pt-1 font-mono text-xs">
+                    {/* Project URL */}
+                    <div className="p-2.5 rounded-lg bg-[#0a110c] border border-[#1e2a21] flex items-center justify-between gap-2">
+                      <div className="overflow-hidden">
+                        <div className="text-[10px] uppercase tracking-wider text-gray-400 font-sans font-bold">
+                          Project URL
+                        </div>
+                        <div className="text-emerald-300 text-[11px] truncate">{SUPABASE_URL}</div>
+                      </div>
+                      <button
+                        onClick={() => copyToClipboard(SUPABASE_URL, 'Project URL')}
+                        className="p-1.5 rounded bg-[#16231a] hover:bg-[#203326] text-gray-300 hover:text-white flex-none"
+                        title="Copy URL"
+                      >
+                        {copiedKey === 'Project URL' ? (
+                          <CheckCheck className="w-3.5 h-3.5 text-[#22c55e]" />
+                        ) : (
+                          <Copy className="w-3.5 h-3.5" />
+                        )}
+                      </button>
+                    </div>
+
+                    {/* Publishable Anon Key */}
+                    <div className="p-2.5 rounded-lg bg-[#0a110c] border border-[#1e2a21] flex items-center justify-between gap-2">
+                      <div className="overflow-hidden">
+                        <div className="text-[10px] uppercase tracking-wider text-gray-400 font-sans font-bold">
+                          Publishable Key
+                        </div>
+                        <div className="text-gray-300 text-[11px] truncate">
+                          {SUPABASE_ANON_KEY.substring(0, 18)}••••••••••••••••••••••••••••
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => copyToClipboard(SUPABASE_ANON_KEY, 'Publishable Key')}
+                        className="p-1.5 rounded bg-[#16231a] hover:bg-[#203326] text-gray-300 hover:text-white flex-none"
+                        title="Copy Key"
+                      >
+                        {copiedKey === 'Publishable Key' ? (
+                          <CheckCheck className="w-3.5 h-3.5 text-[#22c55e]" />
+                        ) : (
+                          <Copy className="w-3.5 h-3.5" />
+                        )}
+                      </button>
+                    </div>
+
+                    {/* Postgres Connection String */}
+                    <div className="p-2.5 rounded-lg bg-[#0a110c] border border-[#1e2a21] flex items-center justify-between gap-2">
+                      <div className="overflow-hidden">
+                        <div className="text-[10px] uppercase tracking-wider text-gray-400 font-sans font-bold">
+                          PostgreSQL Connection URI
+                        </div>
+                        <div className="text-gray-300 text-[10px] truncate">
+                          {DEFAULT_POSTGRES_CONNECTION_STRING}
+                        </div>
+                      </div>
+                      <button
+                        onClick={() =>
+                          copyToClipboard(DEFAULT_POSTGRES_CONNECTION_STRING, 'Connection String')
+                        }
+                        className="p-1.5 rounded bg-[#16231a] hover:bg-[#203326] text-gray-300 hover:text-white flex-none"
+                        title="Copy Connection String"
+                      >
+                        {copiedKey === 'Connection String' ? (
+                          <CheckCheck className="w-3.5 h-3.5 text-[#22c55e]" />
+                        ) : (
+                          <Copy className="w-3.5 h-3.5" />
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Vercel Deployment & Publishing Readiness Card */}
+                <div className="p-4 rounded-xl bg-gradient-to-br from-[#0d141f] to-[#0a0f16] border border-blue-500/30 space-y-3 shadow-lg">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center text-blue-400">
+                        <Globe className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <h4 className="font-extrabold text-sm text-white flex items-center gap-1.5">
+                          <span>Vercel Publishing Readiness</span>
+                          <span className="text-[10px] bg-blue-500/20 text-blue-300 border border-blue-500/30 px-2 py-0.5 rounded-full font-bold">
+                            Ready
+                          </span>
+                        </h4>
+                        <p className="text-[11px] text-gray-400">Single Page App routing and Vercel build configuration</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="p-3 rounded-lg bg-[#070b12] border border-[#1a2536] space-y-2 text-xs">
+                    <div className="flex items-start gap-2">
+                      <div className="w-1.5 h-1.5 rounded-full bg-blue-400 mt-1.5 flex-none" />
+                      <div className="text-gray-300">
+                        <strong className="text-white">SPA Routing Configured:</strong> <code className="text-blue-300 font-mono text-[11px]">vercel.json</code> rewrites all routes to <code className="text-blue-300 font-mono text-[11px]">/index.html</code> so direct links and page refreshes work smoothly without 404s.
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <div className="w-1.5 h-1.5 rounded-full bg-blue-400 mt-1.5 flex-none" />
+                      <div className="text-gray-300">
+                        <strong className="text-white">Build Command:</strong> <code className="text-blue-300 font-mono text-[11px]">npm run build</code> (Vite production bundle into <code className="text-blue-300 font-mono text-[11px]">dist</code>).
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Vercel Environment Variables */}
+                  <div className="space-y-1.5">
+                    <span className="text-[10px] uppercase font-bold text-gray-400 tracking-wider block">
+                      Vercel Project Environment Variables:
+                    </span>
+                    <div className="p-2 rounded-lg bg-[#070b12] border border-[#1a2536] flex items-center justify-between text-xs font-mono">
+                      <span className="text-gray-400 truncate">VITE_SUPABASE_URL</span>
+                      <button
+                        onClick={() => copyToClipboard(SUPABASE_URL, 'VITE_SUPABASE_URL')}
+                        className="p-1 rounded bg-[#131d2a] hover:bg-[#1a293b] text-gray-300 hover:text-white flex-none"
+                      >
+                        <Copy className="w-3 h-3" />
+                      </button>
+                    </div>
+                    <div className="p-2 rounded-lg bg-[#070b12] border border-[#1a2536] flex items-center justify-between text-xs font-mono">
+                      <span className="text-gray-400 truncate">VITE_SUPABASE_ANON_KEY</span>
+                      <button
+                        onClick={() => copyToClipboard(SUPABASE_ANON_KEY, 'VITE_SUPABASE_ANON_KEY')}
+                        className="p-1 rounded bg-[#131d2a] hover:bg-[#1a293b] text-gray-300 hover:text-white flex-none"
+                      >
+                        <Copy className="w-3 h-3" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Clear Temporary App Cache */}
+                <div className="p-3.5 rounded-xl bg-[var(--card)] border border-[var(--border)] flex items-center justify-between">
                   <div>
-                    <div className="text-white font-medium">Clear Temporary App Cache</div>
-                    <div className="text-[11px] text-gray-400">Resets seen stories and loaded assets</div>
+                    <div className="text-white font-medium text-xs">Clear Temporary App Cache</div>
+                    <div className="text-[11px] text-gray-400">Resets seen stories and local drafts</div>
                   </div>
                   <button
                     onClick={onClearCache}
-                    className="px-3 py-1.5 rounded-lg bg-[#22c55e] text-[#04210f] font-bold text-xs"
+                    className="px-3 py-1.5 rounded-lg bg-[#1b2720] hover:bg-[#23332a] text-gray-200 border border-[#2b3c31] font-bold text-xs"
                   >
                     Clear Cache
                   </button>

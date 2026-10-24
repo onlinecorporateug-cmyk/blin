@@ -147,7 +147,27 @@ export const HomeFeed: React.FC<HomeFeedProps> = ({
 
       {/* Main Snap Feed */}
       <main className="flex-1 clip-feed no-scrollbar">
-        {clips.map((clip, index) => {
+        {clips.length === 0 ? (
+          <div className="h-full flex flex-col items-center justify-center p-6 text-center text-white space-y-4">
+            <div className="w-16 h-16 rounded-2xl bg-[#142319] border border-[#22c55e]/30 flex items-center justify-center text-[#22c55e] shadow-xl">
+              <Plus className="w-8 h-8 stroke-[2.5]" />
+            </div>
+            <div className="space-y-1">
+              <h3 className="text-lg font-black tracking-tight">No clips yet</h3>
+              <p className="text-xs text-gray-400 max-w-xs leading-relaxed">
+                All fake accounts have been cleared. Be the first to publish a real vibe or story in Creator Studio!
+              </p>
+            </div>
+            <button
+              onClick={onOpenCreateStory}
+              className="px-6 py-3 rounded-full gradient-btn font-extrabold text-xs shadow-xl transition-transform active:scale-95 flex items-center gap-2"
+            >
+              <Plus className="w-4 h-4 stroke-[3]" />
+              <span>Open Creator Studio ⚡</span>
+            </button>
+          </div>
+        ) : (
+          clips.map((clip, index) => {
           if (blockedUsers[clip.h]) return null;
 
           const isLiked = Boolean(clip.liked);
@@ -321,7 +341,8 @@ export const HomeFeed: React.FC<HomeFeedProps> = ({
               </div>
             </section>
           );
-        })}
+        })
+      )}
       </main>
 
       {/* Story Viewer Modal */}

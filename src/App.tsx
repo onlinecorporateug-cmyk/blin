@@ -19,6 +19,14 @@ import { ProfileView } from './components/ProfileView';
 import { AdminView } from './components/AdminView';
 import { SettingsView } from './components/SettingsView';
 import { AuthModal } from './components/AuthModal';
+import { supabase } from './lib/supabase';
+import {
+  syncUserProfileToSupabase,
+  createStoryInSupabase,
+  likeClipInSupabase,
+  unlikeClipInSupabase,
+  addCommentToSupabase
+} from './lib/supabaseService';
 
 // Storage helper functions
 const getStored = <T,>(key: string, fallback: T): T => {
@@ -38,31 +46,52 @@ const setStored = <T,>(key: string, value: T): void => {
   }
 };
 
+const FAKE_HANDLES = new Set([
+  'jonathan_creator',
+  'kevin_admin',
+  'amara_groove',
+  'kitomakesbeats',
+  'zola_thrifted',
+  'malik_skates',
+  'amara',
+  'kito',
+  'zola',
+  'malik'
+]);
+
 export default function App() {
-  // Persistent Accounts
-  const [accounts, setAccounts] = useState<Account[]>(() =>
-    getStored('blin_accounts', INITIAL_ACCOUNTS)
-  );
+  // Persistent Accounts (guaranteed real accounts only)
+  const [accounts, setAccounts] = useState<Account[]>(() => {
+    const raw = getStored<Account[]>('blin_accounts', INITIAL_ACCOUNTS);
+    return raw.filter((a) => a && a.u && !FAKE_HANDLES.has(a.u.toLowerCase()));
+  });
 
   // Persistent Current User (defaults to null for real authentication)
-  const [currentUser, setCurrentUser] = useState<Account | null>(() =>
-    getStored('blin_current_user', null)
-  );
+  const [currentUser, setCurrentUser] = useState<Account | null>(() => {
+    const raw = getStored<Account | null>('blin_current_user', null);
+    if (raw && FAKE_HANDLES.has(raw.u.toLowerCase())) {
+      return null;
+    }
+    return raw;
+  });
 
   const [currentTab, setCurrentTab] = useState<string>('home');
 
   // Persistent Content
-  const [clips, setClips] = useState<Clip[]>(() =>
-    getStored('blin_clips', INITIAL_CLIPS)
-  );
+  const [clips, setClips] = useState<Clip[]>(() => {
+    const raw = getStored<Clip[]>('blin_clips', INITIAL_CLIPS);
+    return raw.filter((c) => c && c.h && !FAKE_HANDLES.has(c.h.toLowerCase()));
+  });
 
-  const [stories, setStories] = useState<Story[]>(() =>
-    getStored('blin_stories', INITIAL_STORIES)
-  );
+  const [stories, setStories] = useState<Story[]>(() => {
+    const raw = getStored<Story[]>('blin_stories', INITIAL_STORIES);
+    return raw.filter((s) => s.you || !FAKE_HANDLES.has(s.n.toLowerCase()));
+  });
 
-  const [threads, setThreads] = useState<ChatThread[]>(() =>
-    getStored('blin_threads', INITIAL_THREADS)
-  );
+  const [threads, setThreads] = useState<ChatThread[]>(() => {
+    const raw = getStored<ChatThread[]>('blin_threads', INITIAL_THREADS);
+    return raw.filter((t) => !FAKE_HANDLES.has(t.n.toLowerCase()));
+  });
 
   const [reports, setReports] = useState<ReportItem[]>(() =>
     getStored('blin_reports', INITIAL_REPORTS)
@@ -142,6 +171,56 @@ export default function App() {
     }, 2400);
   };
 
+  // Supabase Auth session listener
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user && !currentUser) {
+        const meta = session.user.user_metadata || {};
+        const u = meta.username || session.user.email?.split('@')[0] || 'blin_user';
+        const found = accounts.find((a) => a.em === session.user.email || a.u === u);
+        if (found) {
+          setCurrentUser(found);
+        } else {
+          const newAcc: Account = {
+            u,
+            name: meta.full_name || session.user.email?.split('@')[0] || 'BLiN Member',
+            em: session.user.email || '',
+            pw: '',
+            role: meta.role || 'user',
+            kind: meta.kind || 'creator',
+            vibes: meta.vibes || ['Dance', 'Music'],
+            fol: 0,
+            bio: meta.bio || 'Authenticated via Supabase'
+          };
+          setCurrentUser(newAcc);
+          setAccounts((prev) => (prev.some((a) => a.u === u) ? prev : [...prev, newAcc]));
+        }
+      }
+    });
+
+    const {
+      data: { subscription }
+    } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_OUT') {
+        setCurrentUser(null);
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  const handleLogout = async () => {
+    try {
+      await supabase.auth.signOut();
+    } catch {
+      // Ignore network errors
+    }
+    setCurrentUser(null);
+    showToast('Logged out of BLiN');
+  };
+
   // Screen time reminder
   useEffect(() => {
     if (!currentUser || settings.remind === 'Off') return;
@@ -175,6 +254,13 @@ export default function App() {
       prev.map((clip, idx) => {
         if (idx === clipIndex) {
           const nextLiked = !clip.liked;
+          if (clip.id) {
+            if (nextLiked) {
+              likeClipInSupabase(clip.id);
+            } else {
+              unlikeClipInSupabase(clip.id);
+            }
+          }
           return { ...clip, liked: nextLiked };
         }
         return clip;
@@ -205,15 +291,19 @@ export default function App() {
 
   const handleAddComment = (clipIndex: number, commentText: string) => {
     if (!currentUser) return;
+    const clip = clips[clipIndex];
+    if (clip?.id) {
+      addCommentToSupabase(clip.id, commentText, currentUser.u);
+    }
     setClips((prev) =>
-      prev.map((clip, idx) => {
+      prev.map((c, idx) => {
         if (idx === clipIndex) {
           return {
-            ...clip,
-            cm: [...clip.cm, [currentUser.u, commentText, 1]]
+            ...c,
+            cm: [...c.cm, [currentUser.u, commentText, 1]]
           };
         }
-        return clip;
+        return c;
       })
     );
     showToast('Comment posted ✨');
@@ -276,6 +366,7 @@ export default function App() {
       fl: storyData.filter,
       x: storyData.caption
     };
+    createStoryInSupabase(storyData.imageKey, storyData.caption, storyData.filter);
     setStories((prev) => {
       const copy = [...prev];
       copy.splice(1, 0, newStory);
@@ -531,10 +622,7 @@ export default function App() {
         {/* Top Header */}
         <Header
           user={currentUser}
-          onLogout={() => {
-            setCurrentUser(null);
-            showToast('Logged out of BLiN');
-          }}
+          onLogout={handleLogout}
           isMobileFrame={isMobileFrame}
           onToggleFrame={() => setIsMobileFrame(!isMobileFrame)}
           onOpenSettings={() => setCurrentTab('settings')}
@@ -550,6 +638,7 @@ export default function App() {
             }}
             onSignUp={(newAccount) => {
               setAccounts((prev) => [...prev, newAccount]);
+              syncUserProfileToSupabase(newAccount);
               showToast(`Account created for @${newAccount.u} 🚀`);
             }}
             accounts={accounts}
@@ -650,15 +739,13 @@ export default function App() {
                   setAccounts((prev) =>
                     prev.map((a) => (a.u === updated.u ? updated : a))
                   );
+                  syncUserProfileToSupabase(updated);
                   showToast('Profile updated ✨');
                 }}
                 onOpenSettings={() => setCurrentTab('settings')}
                 onSelectClip={() => setCurrentTab('home')}
                 onDeleteMyClip={handleDeleteMyClipById}
-                onLogout={() => {
-                  setCurrentUser(null);
-                  showToast('Logged out of BLiN');
-                }}
+                onLogout={handleLogout}
                 totalMembersCount={accounts.length + 4}
               />
             )}
@@ -683,10 +770,7 @@ export default function App() {
                   setSettings((prev) => ({ ...prev, [key]: val }))
                 }
                 onBack={() => setCurrentTab('prof')}
-                onLogout={() => {
-                  setCurrentUser(null);
-                  showToast('Logged out of BLiN');
-                }}
+                onLogout={handleLogout}
                 drafts={drafts}
                 onOpenDraft={(draftIndex) => {
                   setDrafts((prev) => prev.filter((_, idx) => idx !== draftIndex));

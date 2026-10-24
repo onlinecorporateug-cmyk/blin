@@ -331,37 +331,18 @@ export const MessagesView: React.FC<MessagesViewProps> = ({
               />
             </div>
 
-            <div className="space-y-1">
-              <span className="text-[10px] uppercase font-bold text-gray-400 block">
-                Or quick connect with featured creators:
-              </span>
-              {[
-                { name: 'Amara Nakato', img: 'a' },
-                { name: 'Kito Mukasa', img: 'k' },
-                { name: 'Zola Bright', img: 'z' },
-                { name: 'Malik Rivera', img: 'm' }
-              ].map((creator) => (
-                <button
-                  key={creator.name}
-                  onClick={() => handleStartChatWith(creator.name, creator.img)}
-                  className="w-full text-left p-2 rounded-lg bg-[var(--card)] hover:bg-[#1b2720] text-gray-200 flex items-center gap-2"
-                >
-                  <div
-                    className="w-6 h-6 rounded-full bg-cover bg-center flex-none"
-                    style={{ backgroundImage: `url(${IM[creator.img] || IM.a})` }}
-                  />
-                  <span>{creator.name}</span>
-                </button>
-              ))}
-            </div>
-
-            {newChatName.trim() && (
+            {newChatName.trim() ? (
               <button
                 onClick={() => handleStartChatWith(newChatName.trim(), 'a')}
-                className="w-full py-2 rounded-lg gradient-btn font-bold text-xs"
+                className="w-full py-2.5 rounded-xl gradient-btn font-extrabold text-xs shadow-md flex items-center justify-center gap-1.5"
               >
-                Chat with {newChatName.trim()}
+                <MessageSquarePlus className="w-3.5 h-3.5" />
+                <span>Start conversation with {newChatName.trim()}</span>
               </button>
+            ) : (
+              <p className="text-[11px] text-gray-400 text-center py-2">
+                Type any creator name or handle above to begin messaging.
+              </p>
             )}
           </div>
         </div>

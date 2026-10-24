@@ -6,115 +6,15 @@ export const IM: Record<string, string> = {
 
 export const INITIAL_ACCOUNTS: Account[] = [];
 
-export const INITIAL_CLIPS: Clip[] = [
-  {
-    id: 'c1',
-    t: 'Rooftop golden hour freestyle',
-    n: 'Amara Nakato',
-    h: 'amara_groove',
-    i: 'a',
-    l: 14200,
-    c: 384,
-    v: '89.4K',
-    s: 'Kampala Sunset Bounce · Kito Mukasa',
-    tags: '#AfroDance #KampalaVibes #BLiNBoost',
-    cm: [
-      ['kitomakesbeats', 'The rhythm sync at 0:14 is insane!'],
-      ['zola_thrifted', 'Need this groove in my life 😍']
-    ]
-  },
-  {
-    id: 'c2',
-    t: 'Building a beat in 60 seconds with analog synths',
-    n: 'Kito Mukasa',
-    h: 'kitomakesbeats',
-    i: 'k',
-    l: 8750,
-    c: 210,
-    v: '42.1K',
-    s: 'Tape Hiss & 808s · Analog Kid',
-    tags: '#BeatMaking #Analog #VibeIn60s',
-    cm: [
-      ['amara_groove', 'Send me the stems 🔥']
-    ]
-  },
-  {
-    id: 'c3',
-    t: 'I upcycled 4 old denim jackets into 1 runway piece',
-    n: 'Zola Bright',
-    h: 'zola_thrifted',
-    i: 'z',
-    l: 6420,
-    c: 158,
-    v: '31.2K',
-    s: 'Midnight City Lo-Fi · Nova Beats',
-    tags: '#Thrift #Upcycle #SlowFashion',
-    cm: [
-      ['malik_skates', 'Iconic. Where do I buy?']
-    ]
-  },
-  {
-    id: 'c4',
-    t: 'Landed the 5-stair kickflip at dusk after 47 tries',
-    n: 'Malik Rivera',
-    h: 'malik_skates',
-    i: 'm',
-    l: 19800,
-    c: 502,
-    v: '114K',
-    s: 'Hyperpop Velocity · GlitchGirl',
-    tags: '#Skate #Kickflip #Persistence',
-    cm: [
-      ['zola_thrifted', '47 tries?? legend']
-    ]
-  }
-];
+export const INITIAL_CLIPS: Clip[] = [];
 
 export const INITIAL_STORIES: Story[] = [
-  { n: 'Your story', i: 'a', you: 1 },
-  { n: 'Kito', i: 'k', x: 'Soundcheck 🎛️' },
-  { n: 'Zola', i: 'z', x: 'New fit drop 👀' },
-  { n: 'Malik', i: 'm', x: '5-stair or bust 🛹' },
-  { n: 'Amara', i: 'a', x: 'Rooftop mood ☀️' }
+  { n: 'Your story', i: '', you: 1 }
 ];
 
-export const INITIAL_THREADS: ChatThread[] = [
-  {
-    n: 'Kito Mukasa',
-    i: 'k',
-    req: 0,
-    u: 2,
-    m: [
-      { t: 'The rhythm sync at 0:14 is insane!', tm: '09:41' },
-      { t: 'Making a custom beat for your next routine 🔥', tm: '09:42' }
-    ]
-  },
-  {
-    n: 'Zola Bright',
-    i: 'z',
-    req: 0,
-    u: 0,
-    m: [
-      { t: 'Collab on a thrift haul remix?', tm: 'Yesterday' },
-      { me: 1, t: 'Yes! Send the clips over', tm: 'Yesterday', st: 'seen' }
-    ]
-  },
-  {
-    n: 'Malik Rivera',
-    i: 'm',
-    req: 1,
-    u: 1,
-    m: [
-      { t: 'Loved your rooftop clip. Want to do a duet?', tm: '08:15' }
-    ]
-  }
-];
+export const INITIAL_THREADS: ChatThread[] = [];
 
-export const INITIAL_REPORTS: ReportItem[] = [
-  { id: 1, h: 'malik_skates', why: 'Spam' },
-  { id: 2, h: 'zola_thrifted', why: 'Copyright (music)' },
-  { id: 3, h: 'kitomakesbeats', why: 'Harassment in comments' }
-];
+export const INITIAL_REPORTS: ReportItem[] = [];
 
 export const FILTERS = [
   ['Normal', 'none'],
