@@ -17,7 +17,8 @@ export async function syncUserProfileToSupabase(account: Account): Promise<{ suc
       return { success: false, error: 'No active Supabase auth session' };
     }
 
-    const { error } = await supabase.from('profiles').upsert({
+    // 1. Sync to public.profiles
+    const { error: profileError } = await supabase.from('profiles').upsert({
       id: userId,
       username: account.u,
       full_name: account.name,
@@ -31,10 +32,26 @@ export async function syncUserProfileToSupabase(account: Account): Promise<{ suc
       updated_at: new Date().toISOString()
     });
 
-    if (error) {
-      console.warn('Supabase profile sync notice:', error.message);
-      return { success: false, error: error.message };
+    if (profileError) {
+      console.warn('Supabase profile sync notice:', profileError.message);
     }
+
+    // 2. Sync to public.users (Vercel user account record)
+    await supabase.from('users').upsert({
+      id: userId,
+      email: account.em || '',
+      username: account.u,
+      full_name: account.name,
+      avatar_url: account.avatar || '',
+      bio: account.bio || '',
+      role: account.role || 'user',
+      kind: account.kind || 'creator',
+      vibes: account.vibes || [],
+      signup_source: 'vercel',
+      created_from_domain: typeof window !== 'undefined' ? window.location.hostname : 'vercel.app',
+      last_sign_in_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    });
 
     return { success: true };
   } catch (err: any) {

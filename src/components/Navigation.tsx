@@ -102,7 +102,7 @@ export const Navigation: React.FC<NavigationProps> = ({
           </linearGradient>
         </defs>
       </svg>
-      <nav className="relative z-20 flex justify-around items-center pt-2 pb-3 px-1 border-t border-[#1b261f] bg-[var(--bg)]/95 backdrop-blur-md">
+      <nav className="relative z-20 flex justify-around items-center pt-2 pb-3 px-1 border-t border-[#1b261f] bg-[var(--bg)]/95 backdrop-blur-md md:hidden">
         {tabs.map((tab) => {
           const isActive = currentTab === tab.id || (tab.id === 'prof' && currentTab === 'settings');
           return (

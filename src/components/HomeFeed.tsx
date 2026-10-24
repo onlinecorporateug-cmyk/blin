@@ -95,58 +95,60 @@ export const HomeFeed: React.FC<HomeFeedProps> = ({
   return (
     <div className="relative flex-1 flex flex-col min-h-0 overflow-hidden">
       {/* Stories Carousel */}
-      <div className="relative z-10 flex gap-3 px-3 py-2.5 overflow-x-auto no-scrollbar bg-gradient-to-b from-black/80 via-black/40 to-transparent">
-        {stories.map((story, idx) => {
-          const isYou = Boolean(story.you);
-          const storyVisual = story.i.startsWith('data:') ? story.i : (IM[story.i] || IM.a);
+      <div className="relative z-10 w-full bg-gradient-to-b from-black/80 via-black/40 to-transparent border-b border-[#1b261f]/40">
+        <div className="max-w-4xl mx-auto flex gap-3 px-4 py-2.5 overflow-x-auto no-scrollbar">
+          {stories.map((story, idx) => {
+            const isYou = Boolean(story.you);
+            const storyVisual = story.i.startsWith('data:') ? story.i : (IM[story.i] || IM.a);
 
-          return (
-            <button
-              key={idx}
-              onClick={() => {
-                if (isYou) {
-                  onOpenCreateStory();
-                } else {
-                  onOpenStoryViewer(idx);
-                }
-              }}
-              className="flex flex-col items-center gap-1 flex-none group focus:outline-none"
-            >
-              <div
-                className={`p-[2px] rounded-full transition-transform group-hover:scale-105 ${
-                  isYou
-                    ? 'border-2 border-dashed border-[#22c55e]'
-                    : story.seen
-                    ? 'bg-gray-600'
-                    : 'bg-gradient-to-tr from-[#4ade80] via-[#a3e635] to-amber-400 shadow-md'
-                }`}
+            return (
+              <button
+                key={idx}
+                onClick={() => {
+                  if (isYou) {
+                    onOpenCreateStory();
+                  } else {
+                    onOpenStoryViewer(idx);
+                  }
+                }}
+                className="flex flex-col items-center gap-1 flex-none group focus:outline-none"
               >
                 <div
-                  className="w-13 h-13 rounded-full bg-cover bg-center border-2 border-[var(--bg)] relative overflow-hidden"
-                  style={{
-                    backgroundImage: `url(${storyVisual})`,
-                    filter: story.fl || 'none'
-                  }}
+                  className={`p-[2px] rounded-full transition-transform group-hover:scale-105 ${
+                    isYou
+                      ? 'border-2 border-dashed border-[#22c55e]'
+                      : story.seen
+                      ? 'bg-gray-600'
+                      : 'bg-gradient-to-tr from-[#4ade80] via-[#a3e635] to-amber-400 shadow-md'
+                  }`}
                 >
-                  {isYou && (
-                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                      <div className="w-5 h-5 rounded-full bg-[#22c55e] flex items-center justify-center text-black">
-                        <Plus className="w-3.5 h-3.5 stroke-[3]" />
+                  <div
+                    className="w-13 h-13 rounded-full bg-cover bg-center border-2 border-[var(--bg)] relative overflow-hidden"
+                    style={{
+                      backgroundImage: `url(${storyVisual})`,
+                      filter: story.fl || 'none'
+                    }}
+                  >
+                    {isYou && (
+                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                        <div className="w-5 h-5 rounded-full bg-[#22c55e] flex items-center justify-center text-black">
+                          <Plus className="w-3.5 h-3.5 stroke-[3]" />
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </div>
-              </div>
-              <span className="text-[11px] font-semibold text-gray-200 tracking-tight truncate max-w-[62px]">
-                {isYou ? 'Your story' : story.n}
-              </span>
-            </button>
-          );
-        })}
+                <span className="text-[11px] font-semibold text-gray-200 tracking-tight truncate max-w-[62px]">
+                  {isYou ? 'Your story' : story.n}
+                </span>
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {/* Main Snap Feed */}
-      <main className="flex-1 clip-feed no-scrollbar">
+      <main className="flex-1 clip-feed no-scrollbar w-full flex flex-col items-center">
         {clips.length === 0 ? (
           <div className="h-full flex flex-col items-center justify-center p-6 text-center text-white space-y-4">
             <div className="w-16 h-16 rounded-2xl bg-[#142319] border border-[#22c55e]/30 flex items-center justify-center text-[#22c55e] shadow-xl">
@@ -179,7 +181,7 @@ export const HomeFeed: React.FC<HomeFeedProps> = ({
           const clipVisual = clip.i.startsWith('data:') ? clip.i : (IM[clip.i] || IM.a);
 
           return (
-            <section key={clip.id || index} className="clip-item relative flex flex-col justify-end">
+            <section key={clip.id || index} className="clip-item w-full max-w-[480px] h-full relative flex flex-col justify-end md:rounded-2xl md:my-1 overflow-hidden shadow-2xl border border-white/5">
               {/* Background cover / video simulation */}
               <div
                 className="absolute inset-0 bg-cover bg-center transition-all duration-300"

@@ -188,7 +188,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
       </div>
 
       {/* Content Area */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 no-scrollbar">
+      <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4 max-w-4xl mx-auto w-full no-scrollbar">
         {activeSectionId === null ? (
           <>
             <p className="text-xs text-gray-400">

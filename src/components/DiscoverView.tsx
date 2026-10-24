@@ -52,7 +52,7 @@ export const DiscoverView: React.FC<DiscoverViewProps> = ({
     });
 
   return (
-    <div className="flex-1 overflow-y-auto p-4 space-y-4 no-scrollbar">
+    <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4 max-w-5xl mx-auto w-full no-scrollbar">
       {/* Title */}
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-extrabold text-white flex items-center gap-1.5">

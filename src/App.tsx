@@ -115,7 +115,6 @@ export default function App() {
 
   const [activeStoryIndex, setActiveStoryIndex] = useState<number | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
-  const [isMobileFrame, setIsMobileFrame] = useState<boolean>(true);
   const toastTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Sync state to localStorage
@@ -197,6 +196,42 @@ export default function App() {
         }
       }
     });
+
+    // Hydrate real accounts from Supabase users table (created on Vercel)
+    supabase
+      .from('users')
+      .select('*')
+      .then(({ data: remoteUsers, error }) => {
+        if (!error && remoteUsers && remoteUsers.length > 0) {
+          setAccounts((prev) => {
+            const map = new Map<string, Account>();
+            prev.forEach((a) => {
+              if (a && a.u && !FAKE_HANDLES.has(a.u.toLowerCase())) {
+                map.set(a.u.toLowerCase(), a);
+              }
+            });
+            remoteUsers.forEach((ru: any) => {
+              const u = ru.username;
+              if (u && !FAKE_HANDLES.has(u.toLowerCase())) {
+                const existing = map.get(u.toLowerCase());
+                map.set(u.toLowerCase(), {
+                  u,
+                  name: ru.full_name || u,
+                  em: ru.email || existing?.em || '',
+                  pw: existing?.pw || '',
+                  role: ru.role || 'user',
+                  kind: ru.kind || 'creator',
+                  vibes: ru.vibes || ['Dance', 'Music'],
+                  fol: ru.followers_count || existing?.fol || 0,
+                  bio: ru.bio || existing?.bio || 'BLiN Creator',
+                  avatar: ru.avatar_url || existing?.avatar
+                });
+              }
+            });
+            return Array.from(map.values());
+          });
+        }
+      });
 
     const {
       data: { subscription }
@@ -601,7 +636,7 @@ export default function App() {
 
   return (
     <div
-      className={`min-h-screen bg-[#050608] flex items-center justify-center p-0 md:p-4 select-none ${themeClass} ${contrastClass} ${motionClass}`}
+      className={`min-h-screen h-screen w-full bg-[var(--bg)] flex flex-col select-none ${themeClass} ${contrastClass} ${motionClass} overflow-hidden`}
       style={zoomStyle}
     >
       {/* Toast Notification */}
@@ -611,26 +646,22 @@ export default function App() {
         </div>
       )}
 
-      {/* Main Mobile App Frame */}
-      <div
-        className={`w-full transition-all duration-300 relative ${
-          isMobileFrame
-            ? 'max-w-[440px] h-[100dvh] md:h-[840px] md:rounded-[36px] md:border-[10px] md:border-[#1e2821] overflow-hidden shadow-[0_20px_60px_-15px_rgba(0,0,0,0.85)]'
-            : 'max-w-4xl h-[100dvh] md:h-[90vh] md:rounded-2xl border border-[#233128] overflow-hidden shadow-2xl'
-        } bg-[var(--bg)] flex flex-col`}
-      >
+      {/* Main Full-Width Web Layout */}
+      <div className="w-full h-full flex flex-col min-h-0 relative bg-[var(--bg)]">
         {/* Top Header */}
         <Header
           user={currentUser}
           onLogout={handleLogout}
-          isMobileFrame={isMobileFrame}
-          onToggleFrame={() => setIsMobileFrame(!isMobileFrame)}
           onOpenSettings={() => setCurrentTab('settings')}
+          currentTab={currentTab}
+          onTabChange={handleTabChange}
+          unreadMessagesCount={totalUnreadMessages}
         />
 
         {/* Views */}
         {!currentUser ? (
-          <AuthModal
+          <div className="flex-1 flex flex-col min-h-0 overflow-y-auto">
+            <AuthModal
             onLogin={(account) => {
               setCurrentUser(account);
               setCurrentTab('home');
@@ -643,8 +674,9 @@ export default function App() {
             }}
             accounts={accounts}
           />
-        ) : (
-          <div className="flex-1 flex flex-col min-h-0 overflow-hidden zoom-content">
+        </div>
+      ) : (
+        <div className="flex-1 flex flex-col min-h-0 overflow-hidden zoom-content w-full">
             {currentTab === 'home' && (
               <HomeFeed
                 clips={clips}

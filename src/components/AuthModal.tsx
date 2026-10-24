@@ -70,6 +70,19 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         const localMatch = accounts.find((a) => a.u.toLowerCase() === trimmedId);
         if (localMatch?.em) {
           emailForAuth = localMatch.em;
+        } else {
+          try {
+            const { data: userRow } = await supabase
+              .from('users')
+              .select('email')
+              .eq('username', trimmedId)
+              .maybeSingle();
+            if (userRow?.email) {
+              emailForAuth = userRow.email;
+            }
+          } catch {
+            // fallback to local
+          }
         }
       }
 
@@ -80,6 +93,15 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         });
 
         if (!suError && suData?.user) {
+          // Record sign in timestamp in public.users
+          if (suData.user.id) {
+            supabase
+              .from('users')
+              .update({ last_sign_in_at: new Date().toISOString() })
+              .eq('id', suData.user.id)
+              .then();
+          }
+
           const userMeta = suData.user.user_metadata || {};
           const matchedOrNewAccount: Account = {
             u: userMeta.username || suData.user.email?.split('@')[0] || trimmedId,
@@ -252,7 +274,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               full_name: newAcc.name,
               role: newAcc.role,
               kind: newAcc.kind,
-              vibes: newAcc.vibes
+              vibes: newAcc.vibes,
+              signup_source: 'vercel',
+              created_from_domain: typeof window !== 'undefined' ? window.location.hostname : 'vercel.app'
             }
           }
         });
@@ -287,64 +311,66 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   // Render Completion Celebration
   if (suCompletedAccount) {
     return (
-      <div className="flex-1 flex flex-col justify-between p-6 bg-gradient-to-b from-[#0a0f0c] via-[#0f1913] to-[#0a0f0c] text-white">
-        <div className="space-y-4 pt-6 text-center">
-          <div className="w-20 h-20 mx-auto rounded-full bg-gradient-to-tr from-[#22c55e] to-[#a3e635] flex items-center justify-center shadow-xl">
-            <Sparkles className="w-10 h-10 text-[#04210f]" />
-          </div>
-
-          <h2 className="text-2xl font-black tracking-tight">
-            You're in, <span className="gradient-text">@{suCompletedAccount.u}</span> 💚
-          </h2>
-
-          <p className="text-xs text-gray-300 max-w-xs mx-auto leading-relaxed">
-            Welcome to BLiN. Authenticated with Supabase. Create your vibe and find your community.
-          </p>
-
-          <div className="flex flex-wrap justify-center gap-1.5 pt-2">
-            {suCompletedAccount.vibes?.map((v) => (
-              <span
-                key={v}
-                className="text-xs font-bold px-3 py-1 rounded-full bg-[#22c55e]/20 text-[#a3e635] border border-[#22c55e]/30"
-              >
-                {v}
-              </span>
-            ))}
-          </div>
-
-          <div className="p-3.5 rounded-xl bg-[var(--card)] border border-[var(--border)] text-left space-y-1">
-            <div className="font-extrabold text-xs text-white flex items-center gap-1.5">
-              <span>{suCompletedAccount.kind === 'creator' ? '🚀 New Creator Boost Active' : '👀 Feed Tuned'}</span>
-              {suCompletedAccount.role === 'admin' && (
-                <span className="text-[10px] bg-[#22c55e]/20 text-[#4ade80] px-2 py-0.5 rounded-full font-bold ml-auto">
-                  🛡️ Admin Access
-                </span>
-              )}
+      <div className="flex-1 flex flex-col items-center justify-center p-4 md:p-8 bg-[var(--bg)] text-white overflow-y-auto no-scrollbar">
+        <div className="w-full max-w-md bg-[#101712] border border-[#203024] rounded-3xl p-6 md:p-8 shadow-2xl flex flex-col justify-between space-y-4">
+          <div className="space-y-4 pt-2 text-center">
+            <div className="w-20 h-20 mx-auto rounded-full bg-gradient-to-tr from-[#22c55e] to-[#a3e635] flex items-center justify-center shadow-xl">
+              <Sparkles className="w-10 h-10 text-[#04210f]" />
             </div>
-            <p className="text-[11px] text-gray-400">
-              {suCompletedAccount.kind === 'creator'
-                ? 'Your first clips will receive the New Creator algorithm boost to get seen.'
-                : 'Your home feed is pre-calibrated to showcase trending vibes matching your interests.'}
+
+            <h2 className="text-2xl font-black tracking-tight">
+              You're in, <span className="gradient-text">@{suCompletedAccount.u}</span> 💚
+            </h2>
+
+            <p className="text-xs text-gray-300 max-w-xs mx-auto leading-relaxed">
+              Welcome to BLiN. Authenticated with Supabase. Create your vibe and find your community.
             </p>
-          </div>
 
-          <div className="p-3 rounded-xl bg-emerald-950/40 border border-[#22c55e]/30 text-left flex items-center gap-2">
-            <Database className="w-4 h-4 text-[#22c55e] flex-none" />
-            <div className="text-[11px] text-emerald-200">
-              <strong>Supabase Connected:</strong> Account synchronized with <code className="text-xs text-emerald-300">easqggpdhjchngiezlah.supabase.co</code>
+            <div className="flex flex-wrap justify-center gap-1.5 pt-2">
+              {suCompletedAccount.vibes?.map((v) => (
+                <span
+                  key={v}
+                  className="text-xs font-bold px-3 py-1 rounded-full bg-[#22c55e]/20 text-[#a3e635] border border-[#22c55e]/30"
+                >
+                  {v}
+                </span>
+              ))}
+            </div>
+
+            <div className="p-3.5 rounded-xl bg-[var(--card)] border border-[var(--border)] text-left space-y-1">
+              <div className="font-extrabold text-xs text-white flex items-center gap-1.5">
+                <span>{suCompletedAccount.kind === 'creator' ? '🚀 New Creator Boost Active' : '👀 Feed Tuned'}</span>
+                {suCompletedAccount.role === 'admin' && (
+                  <span className="text-[10px] bg-[#22c55e]/20 text-[#4ade80] px-2 py-0.5 rounded-full font-bold ml-auto">
+                    🛡️ Admin Access
+                  </span>
+                )}
+              </div>
+              <p className="text-[11px] text-gray-400">
+                {suCompletedAccount.kind === 'creator'
+                  ? 'Your first clips will receive the New Creator algorithm boost to get seen.'
+                  : 'Your home feed is pre-calibrated to showcase trending vibes matching your interests.'}
+              </p>
+            </div>
+
+            <div className="p-3 rounded-xl bg-emerald-950/40 border border-[#22c55e]/30 text-left flex items-center gap-2">
+              <Database className="w-4 h-4 text-[#22c55e] flex-none" />
+              <div className="text-[11px] text-emerald-200">
+                <strong>Supabase Connected:</strong> Account synchronized with <code className="text-xs text-emerald-300">easqggpdhjchngiezlah.supabase.co</code>
+              </div>
             </div>
           </div>
-        </div>
 
-        <button
-          onClick={() => {
-            onSignUp(suCompletedAccount);
-            onLogin(suCompletedAccount);
-          }}
-          className="w-full py-3.5 rounded-full gradient-btn shadow-xl text-sm font-extrabold transition-transform active:scale-95"
-        >
-          Start Vibing ⚡
-        </button>
+          <button
+            onClick={() => {
+              onSignUp(suCompletedAccount);
+              onLogin(suCompletedAccount);
+            }}
+            className="w-full py-3.5 rounded-full gradient-btn shadow-xl text-sm font-extrabold transition-transform active:scale-95"
+          >
+            Start Vibing ⚡
+          </button>
+        </div>
       </div>
     );
   }
@@ -364,10 +390,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     const age = calculateAge();
 
     return (
-      <div className="flex-1 flex flex-col justify-between p-5 bg-[var(--bg)] text-white no-scrollbar">
-        {/* Top Bar */}
-        <div>
-          <div className="flex items-center justify-between mb-3">
+      <div className="flex-1 flex flex-col items-center justify-center p-4 md:p-8 bg-[var(--bg)] text-white overflow-y-auto no-scrollbar">
+        <div className="w-full max-w-md bg-[#101712] border border-[#203024] rounded-3xl p-6 md:p-8 shadow-2xl flex flex-col justify-between space-y-4">
+          {/* Top Bar */}
+          <div>
+            <div className="flex items-center justify-between mb-3">
             <button
               onClick={() => {
                 if (suStep > 0) {
@@ -643,13 +670,15 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             'Continue'
           )}
         </button>
+        </div>
       </div>
     );
   }
 
   // Render Login Screen
   return (
-    <div className="flex-1 flex flex-col justify-center p-6 bg-[var(--bg)] text-white no-scrollbar">
+    <div className="flex-1 flex flex-col items-center justify-center p-4 md:p-8 bg-[var(--bg)] text-white overflow-y-auto no-scrollbar">
+      <div className="w-full max-w-md bg-[#101712] border border-[#203024] rounded-3xl p-6 md:p-8 shadow-2xl">
       <div className="text-center mb-6">
         <h1 className="logo-script text-6xl gradient-text mb-1 select-none font-bold">
           BLiN
@@ -747,6 +776,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           <UserPlus className="w-4 h-4" />
           <span>Create New Account</span>
         </button>
+      </div>
       </div>
     </div>
   );
